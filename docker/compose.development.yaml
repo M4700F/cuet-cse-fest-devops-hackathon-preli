@@ -1,6 +1,47 @@
-# services:
-  # backend:
+services:
+  gateway:
+    build:
+      context: ../gateway
+      dockerfile: Dockerfile.dev
+    ports:
+      - "${GATEWAY_PORT}:${GATEWAY_PORT}"
+    volumes:
+      - ../gateway/src:/usr/src/app/src
+    env_file:
+      - ../.env.development
+    networks:
+      - ecom-network
+    depends_on:
+      - backend
 
-  # gateway:
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ../backend/src:/usr/src/app/src
+    env_file:
+      - ../.env.development
+    networks:
+      - ecom-network
+    depends_on:
+      - mongo
 
-  # mongo:
+  mongo:
+    image: mongo:6.0
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - ecom-network
+
+networks:
+  ecom-network:
+    driver: bridge
+
+volumes:
+  mongo-data:
+    driver: local
