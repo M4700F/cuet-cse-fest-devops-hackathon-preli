@@ -7,9 +7,9 @@
 /backend/dist
 
 # Environment variables
-.env
-.env.*
-!.env.example
+# .env
+# .env.*
+# !.env.example
 
 # OS-specific
 .DS_Store

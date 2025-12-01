@@ -1,4 +1,4 @@
-.PHONY: help up down build logs restart shell ps dev-up dev-down dev-build dev-logs dev-restart dev-shell dev-ps backend-shell gateway-shell mongo-shell prod-up prod-down prod-build prod-logs prod-restart clean clean-all clean-volumes status health
+.PHONY: help up down build logs restart shell ps dev-up dev-down dev-build dev-logs dev-restart dev-shell dev-ps backend-shell gateway-shell mongo-shell prod-up prod-down prod-build prod-logs prod-restart clean clean-all clean-volumes status health backup restore dev-backup dev-restore prod-backup prod-restore
 
 # Default to development mode
 MODE ?= dev
@@ -53,6 +53,12 @@ help:
 	@echo "  clean          - Remove containers and networks (dev and prod)"
 	@echo "  clean-all      - Remove containers, networks, volumes, and images"
 	@echo "  clean-volumes  - Remove all volumes"
+	@echo ""
+	@echo "Backup & Restore:"
+	@echo "  dev-backup     - Backup development database to backup/dev"
+	@echo "  dev-restore    - Restore development database from backup/dev"
+	@echo "  prod-backup    - Backup production database to backup/prod"
+	@echo "  prod-restore   - Restore production database from backup/prod"
 	@echo ""
 	@echo "Utilities:"
 	@echo "  status         - Alias for ps"
@@ -134,6 +140,29 @@ clean-all:
 
 clean-volumes:
 	@docker volume rm `docker volume ls -q | grep 'cuet-cse-fest-devops-hackathon-preli'` || true
+
+# Backup & Restore
+dev-backup:
+	@mkdir -p backup/dev
+	@echo "Backing up development database..."
+	@docker-compose --project-name cuet-cse-fest-devops-hackathon-preli --env-file .env.development -f docker/compose.development.yaml exec -T mongo sh -c 'mongodump --username "$$MONGO_INITDB_ROOT_USERNAME" --password "$$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin --out /backup/dump'
+	@echo "Backup completed to backup/dev/dump"
+
+dev-restore:
+	@echo "Restoring development database from backup/dev..."
+	@docker-compose --project-name cuet-cse-fest-devops-hackathon-preli --env-file .env.development -f docker/compose.development.yaml exec -T mongo sh -c 'mongorestore --username "$$MONGO_INITDB_ROOT_USERNAME" --password "$$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin --drop /backup/dump'
+	@echo "Restore completed from backup/dev/dump"
+
+prod-backup:
+	@mkdir -p backup/prod
+	@echo "Backing up production database..."
+	@docker-compose --project-name cuet-cse-fest-devops-hackathon-preli --env-file .env.production -f docker/compose.production.yaml exec -T mongo sh -c 'mongodump --username "$$MONGO_INITDB_ROOT_USERNAME" --password "$$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin --out /backup/dump'
+	@echo "Backup completed to backup/prod/dump"
+
+prod-restore:
+	@echo "Restoring production database from backup/prod..."
+	@docker-compose --project-name cuet-cse-fest-devops-hackathon-preli --env-file .env.production -f docker/compose.production.yaml exec -T mongo sh -c 'mongorestore --username "$$MONGO_INITDB_ROOT_USERNAME" --password "$$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin --drop /backup/dump'
+	@echo "Restore completed from backup/prod/dump"
 
 # Utilities
 status: ps

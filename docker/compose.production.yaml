@@ -33,6 +33,7 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
     volumes:
       - mongo-data:/data/db
+      - ../backup/prod:/backup
     networks:
       - ecom-network
 
