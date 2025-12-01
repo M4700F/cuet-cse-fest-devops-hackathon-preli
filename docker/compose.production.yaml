@@ -37,10 +37,63 @@ services:
     networks:
       - ecom-network
 
+  # Monitoring Services
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    container_name: prometheus
+    restart: always
+    ports:
+      - "127.0.0.1:9090:9090"  # Only accessible from localhost
+    volumes:
+      - ../monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    networks:
+      - ecom-network
+
+  grafana:
+    image: grafana/grafana:10.1.0
+    container_name: grafana
+    restart: always
+    ports:
+      - "127.0.0.1:3001:3000"  # Only accessible from localhost
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ../monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus
+    networks:
+      - ecom-network
+
+  mongodb-exporter:
+    image: percona/mongodb_exporter:0.40.0
+    container_name: mongodb-exporter
+    restart: always
+    # No external port exposed - only accessible within Docker network
+    environment:
+      - MONGODB_URI=mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongo:27017/admin?authSource=admin
+    depends_on:
+      - mongo
+    networks:
+      - ecom-network
+
 networks:
   ecom-network:
     driver: bridge
 
 volumes:
   mongo-data:
+    driver: local
+  prometheus-data:
+    driver: local
+  grafana-data:
     driver: local
