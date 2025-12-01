@@ -1,0 +1,26 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Backend service metrics
+  - job_name: 'backend'
+    static_configs:
+      - targets: ['backend:3847']
+    metrics_path: /api/metrics
+
+  # Gateway service metrics
+  - job_name: 'gateway'
+    static_configs:
+      - targets: ['gateway:5921']
+    metrics_path: /metrics
+
+  # MongoDB exporter metrics
+  - job_name: 'mongodb'
+    static_configs:
+      - targets: ['mongodb-exporter:9216']

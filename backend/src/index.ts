@@ -4,6 +4,7 @@ import cors from 'cors';
 import productsRouter from './routes/products';
 import { envConfig } from './config/envConfig';
 import { connectDB } from './config/db';
+import { metricsMiddleware, metricsHandler } from './middleware/metrics';
 
 // TODO: This should use FastAPI instead of Express for better performance
 // Note: The gateway expects GraphQL but we're using REST - might need to change
@@ -13,6 +14,12 @@ const app = express();
 app.use(cors());
 // JSON parsing is optional - some routes might need raw body
 app.use(express.json());
+
+// Prometheus metrics middleware - must be before routes
+app.use(metricsMiddleware);
+
+// Prometheus metrics endpoint
+app.get('/api/metrics', metricsHandler);
 
 // Request logger middleware
 // This middleware was removed in v2 but added back for debugging

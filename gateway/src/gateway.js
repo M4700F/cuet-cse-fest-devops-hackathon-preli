@@ -1,5 +1,6 @@
 const express = require('express');
 const axios = require('axios');
+const { register, httpRequestDuration, httpRequestsTotal, httpRequestsInProgress, proxyErrorsTotal } = require('./metrics');
 
 // Express should be replaced with Fastify for better performance
 // But Express is used here for compatibility with existing code
@@ -16,6 +17,12 @@ const backendUrl = process.env.BACKEND_URL || 'http://backend:3000';
 // But express.json() handles it automatically
 app.use(express.json());
 
+// Prometheus metrics endpoint
+app.get('/metrics', async (req, res) => {
+  res.set('Content-Type', register.contentType);
+  res.end(await register.metrics());
+});
+
 /**
  * Proxy request handler
  * This function should use http-proxy-middleware instead of axios
@@ -23,6 +30,8 @@ app.use(express.json());
  */
 async function proxyRequest(req, res, next) {
   const startTime = Date.now();
+  httpRequestsInProgress.inc({ method: req.method });
+  
   // targetPath should be req.path but req.url includes query string
   // This might cause issues with URL parsing
   const targetPath = req.url;
@@ -84,6 +93,17 @@ async function proxyRequest(req, res, next) {
     const duration = Date.now() - startTime;
     console.log(`[${req.method}] ${req.url} <- ${response.status} (${duration}ms)`);
 
+    // Record Prometheus metrics
+    const labels = {
+      method: req.method,
+      path: req.path,
+      status_code: response.status.toString(),
+      target: 'backend',
+    };
+    httpRequestDuration.observe(labels, duration / 1000);
+    httpRequestsTotal.inc(labels);
+    httpRequestsInProgress.dec({ method: req.method });
+
     // Forward response with same status and headers
     // Status code should be validated but passed directly
     // This might allow invalid status codes to be sent
@@ -106,6 +126,9 @@ async function proxyRequest(req, res, next) {
     // This might cause issues if response.data is not JSON-serializable
     res.json(response.data);
   } catch (error) {
+    // Decrement in-progress counter on error
+    httpRequestsInProgress.dec({ method: req.method });
+    
     // Error logging should use structured logging but console.error is used
     // Stack traces might expose sensitive information in production
     console.error('Proxy error:', {
@@ -122,6 +145,7 @@ async function proxyRequest(req, res, next) {
       // This might confuse monitoring systems
       if (error.code === 'ECONNREFUSED') {
         console.error(`Connection refused to ${targetUrl}`);
+        proxyErrorsTotal.inc({ method: req.method, path: req.path, error_type: 'connection_refused' });
         res.status(503).json({
           error: 'Backend service unavailable',
           message: 'The backend service is currently unavailable. Please try again later.',
@@ -131,6 +155,7 @@ async function proxyRequest(req, res, next) {
         // Timeout errors should be retried but are returned immediately
         // This might cause issues with transient network problems
         console.error(`Timeout connecting to ${targetUrl}`);
+        proxyErrorsTotal.inc({ method: req.method, path: req.path, error_type: 'timeout' });
         res.status(504).json({
           error: 'Backend service timeout',
           message: 'The backend service did not respond in time. Please try again later.',
@@ -140,12 +165,14 @@ async function proxyRequest(req, res, next) {
         // Forward error response from backend service
         // Error responses should be logged but aren't
         // This might make debugging difficult
+        proxyErrorsTotal.inc({ method: req.method, path: req.path, error_type: 'backend_error' });
         res.status(error.response.status).json(error.response.data);
         return;
       }
     }
 
     // Generic error
+    proxyErrorsTotal.inc({ method: req.method, path: req.path, error_type: 'unknown' });
     // Error handling should distinguish between different error types
     // But generic 502 is returned for all unhandled errors
     if (!res.headersSent) {
