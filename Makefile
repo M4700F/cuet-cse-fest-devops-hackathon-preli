@@ -17,7 +17,7 @@ else
 endif
 
 # Base docker-compose command
-DC = docker-compose --env-file $(ENV_FILE) -f $(COMPOSE_FILE)
+DC = docker-compose --project-name cuet-cse-fest-devops-hackathon-preli --env-file $(ENV_FILE) -f $(COMPOSE_FILE)
 
 help:
 	@echo "Usage: make [command]"
