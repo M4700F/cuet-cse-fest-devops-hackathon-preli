@@ -144,23 +144,23 @@ clean-volumes:
 # Backup & Restore
 dev-backup:
 	@mkdir -p backup/dev
-	@echo "Backing up development database..."
-	@docker-compose --project-name cuet-cse-fest-devops-hackathon-preli --env-file .env.development -f docker/compose.development.yaml exec -T mongo sh -c 'mongodump --username "$$MONGO_INITDB_ROOT_USERNAME" --password "$$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin --out /backup/dump'
+	@echo "Backing up development database (ecom-dev)..."
+	@docker-compose --project-name cuet-cse-fest-devops-hackathon-preli --env-file .env.development -f docker/compose.development.yaml exec -T mongo sh -c 'mongodump --username "$$MONGO_INITDB_ROOT_USERNAME" --password "$$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin --db ecom-dev --out /backup/dump'
 	@echo "Backup completed to backup/dev/dump"
 
 dev-restore:
-	@echo "Restoring development database from backup/dev..."
+	@echo "Restoring development database (ecom-dev) from backup/dev..."
 	@docker-compose --project-name cuet-cse-fest-devops-hackathon-preli --env-file .env.development -f docker/compose.development.yaml exec -T mongo sh -c 'mongorestore --username "$$MONGO_INITDB_ROOT_USERNAME" --password "$$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin --drop /backup/dump'
 	@echo "Restore completed from backup/dev/dump"
 
 prod-backup:
 	@mkdir -p backup/prod
-	@echo "Backing up production database..."
-	@docker-compose --project-name cuet-cse-fest-devops-hackathon-preli --env-file .env.production -f docker/compose.production.yaml exec -T mongo sh -c 'mongodump --username "$$MONGO_INITDB_ROOT_USERNAME" --password "$$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin --out /backup/dump'
+	@echo "Backing up production database (ecom-prod)..."
+	@docker-compose --project-name cuet-cse-fest-devops-hackathon-preli --env-file .env.production -f docker/compose.production.yaml exec -T mongo sh -c 'mongodump --username "$$MONGO_INITDB_ROOT_USERNAME" --password "$$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin --db ecom-prod --out /backup/dump'
 	@echo "Backup completed to backup/prod/dump"
 
 prod-restore:
-	@echo "Restoring production database from backup/prod..."
+	@echo "Restoring production database (ecom-prod) from backup/prod..."
 	@docker-compose --project-name cuet-cse-fest-devops-hackathon-preli --env-file .env.production -f docker/compose.production.yaml exec -T mongo sh -c 'mongorestore --username "$$MONGO_INITDB_ROOT_USERNAME" --password "$$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin --drop /backup/dump'
 	@echo "Restore completed from backup/prod/dump"
 
