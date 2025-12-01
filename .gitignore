@@ -1,1 +1,10 @@
+backend/node_modules/
+backend/package-lock.json
+gateway/package-lock.json
+gateway/node_modules/
 
+# Environment files (do not commit actual values)
+.env
+.env.production
+.env.local
+.env.development
